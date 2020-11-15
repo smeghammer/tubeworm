@@ -1,0 +1,84 @@
+type = "Doom Builder Map Settings Configuration";
+gameconfig = "GZDoom_DoomHexen.cfg";
+strictpatches = 0;
+
+maps
+{
+	
+	MAP01
+	{
+		defaultwalltexture = "GRAY1";
+		overridemiddletexture = false;
+		defaultceiltexture = "FLAT1";
+		overrideceiltexture = false;
+		custombrightness = 196;
+		scriptcompiler = "zdoom_acs.cfg";
+		
+		resources
+		{
+		}
+		viewpositiony = 100.0311f;
+		viewpositionx = -93.12029f;
+		customceilheight = 128;
+		
+		plugins
+		{
+			
+			threedfloormode
+			{
+				
+				controlsectorarea
+				{
+					usecustomtagrange = false;
+					outerleft = -512f;
+					outerright = 0f;
+					outertop = 512f;
+					outerbottom = 0f;
+				}
+			}
+		}
+		customfloorheight = 0;
+		
+		grid
+		{
+			backoffsetx = 0;
+			backsource = 0;
+			gridoriginy = 0f;
+			backscaley = 100;
+			gridrotate = 0f;
+			backscalex = 100;
+			gridoriginx = 0f;
+			gridsize = 16f;
+			background = "";
+			backoffsety = 0;
+		}
+		viewscale = 2.059773f;
+		defaulttoptexture = "GRAY1";
+		overridebottomtexture = false;
+		useresourcesinreadonlymode = false;
+		defaultbottomtexture = "GRAY1";
+		defaultfloortexture = "FLAT1";
+		overrideceilheight = false;
+		overridebrightness = false;
+		overridefloorheight = false;
+		overridetoptexture = false;
+		uselongtexturenames = false;
+		overridefloortexture = false;
+		
+		scriptdocuments
+		{
+			
+			document0
+			{
+				filename = "SCRIPTS";
+				hash = 3469170009;
+				resource;
+				tabtype = 0;
+				scripttype = 1;
+				caretposition = 1294;
+				firstvisibleline = 12;
+				activetab = true;
+			}
+		}
+	}
+}
