@@ -1,6 +1,54 @@
 swimmable 3D floors as transfer tubes. Current?
 
 
+teleports:
+----------
+
+source line coords		target coords	notes
+---------------------------------------------
+3136,300				32,544 etc. 	imps
+3360,-296				32,544 etc. 	baby barons
+-2112,-288				544,608			user
+-520,-1568				-296,608		user
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "zcommon.acs"
 
 /*
