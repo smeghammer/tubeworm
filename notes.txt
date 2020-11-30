@@ -1,0 +1,13 @@
+idea:
+-----
+switchable teleport panel with crate taht disappears on activation:
+
+ - blue
+ - off initially
+ - crate on plat (actually a 3d projection)
+ - switch somewhere
+ - switch does:
+	- turns on light
+	- enables teleport lines to secret
+	- removes crate
+	- can now teleport to secret area.
