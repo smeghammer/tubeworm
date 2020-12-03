@@ -11,3 +11,7 @@ switchable teleport panel with crate taht disappears on activation:
 	- enables teleport lines to secret
 	- removes crate
 	- can now teleport to secret area.
+	
+	crate tp need to be secret area
+	crane opposite secret needs more monsdters
+	arena monsters in void!
