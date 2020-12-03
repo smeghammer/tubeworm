@@ -15,3 +15,5 @@ switchable teleport panel with crate taht disappears on activation:
 	crate tp need to be secret area
 	crane opposite secret needs more monsdters
 	arena monsters in void!
+	
+	back entrance to goodies room needs to release monsters (2x barons?, lock-in trap?)
