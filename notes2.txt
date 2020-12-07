@@ -1,0 +1,579 @@
+swimmable 3D floors as transfer tubes. Current?
+
+
+teleports:
+----------
+
+source line coords		target coords	notes
+---------------------------------------------
+3136,300				32,544 etc. 	imps
+3360,-296				32,544 etc. 	baby barons
+-2112,-288				544,608			user
+-520,-1568				-296,608		user
+
+
+
+
+TODO:
+Stuff in secret tele at crate room
+put stuff behind the dube exits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "zcommon.acs"
+
+/*
+DATA:
+map switches (affected sector) to floor heights, to prevent vertical switching issues.
+only activate if player z-index is between certain values for given switch.
+d1: sector tag of door (i.e. passed arg)
+
+{
+	{
+		controlSectorId,
+		doorLowerHeight,
+		TID (e.g. a gib for attaching the sound source)
+	},
+}
+*/
+
+
+bool exitBarsSwitchUp = false;
+
+
+int switchHeightMap[30][3] = {
+	{5, 0, 1},
+	/* sentry doors */
+	{35, 256, 2},
+	{36, 256, 3},
+	{37, 256,4},
+	{38, 256,5},
+
+	/* NE office doors, all floors */
+	{42, 0, 6},
+	{43, 128, 7},
+	{44, 256, 8},
+
+	/* SE office doors, all floors */
+	{45, 0, 9},
+	{46, 128, 10},
+	{47, 256, 11},
+
+	/* SE middle doors, all floors */
+	{50, 0, 12},
+	{51, 128, 13},
+	{52, 256, 14},
+
+	/* SE corner doors, all floors */
+	{55, 0, 15},
+	{56, 128, 16},
+	{57, 256, 17},
+
+	/* central big doors, all floors */
+	{59, 0, 18},
+	{60, 128, 19},
+	{61, 256, 20},
+
+	/* Stairwell exit doors, all floors */
+	{63, 0, 21},
+	{64, 128, 22},
+	{65, 256, 23},
+
+	/* LH central door, gnd, 1st floors */
+	{67, 0, 24},
+	{68, 128, 25},
+
+	/* RH central door, gnd, 1st floors */
+	{69, 0, 27},
+	{70, 128, 28},
+
+	/* Stairwell entry doors, all floors */
+	{75, 0, 29},
+	{76, 128, 30}
+};
+
+
+/*
+Init script
+*/
+script 1 ENTER
+{
+	/*
+	Set underwater translucency for nukage trench
+	(needs to be the control sector):
+	*/
+	Sector_SetFade(2, 0, 192, 64);
+
+	/*
+	Align floor texture for secret tele dest
+	*/
+	Sector_SetFloorPanning(72,0,0,16,0);
+
+	/*
+	Align ceiling/floor texture for RL platform
+	 - the CONTROL SECTOR!!
+	*/
+	Sector_SetFloorPanning(86,-16,0,-16,0);
+	Sector_SetCeilingPanning(86,-16,0,-16,0);
+
+	/*
+	Align ceiling (light) for light blocks:
+	 - the CONTROL SECTORS!!
+	*/
+	Sector_SetFloorPanning(114,-16,0,32,0);
+	Sector_SetCeilingPanning(114,-16,0,32,0);
+	Sector_SetFloorPanning(115,16,0,-8,0);
+	Sector_SetCeilingPanning(115,16,0,-8,0);
+
+	/*
+	align tank bridge textures
+	*/
+	Sector_SetFloorPanning(91,-32,0,0,0);
+	Sector_SetCeilingPanning(91,-32,0,0,0);
+
+	Sector_SetFloorPanning(92,-32,0,0,0);
+	Sector_SetCeilingPanning(92,-32,0,0,0);
+
+	Sector_SetFloorPanning(93,-32,0,0,0);
+	Sector_SetCeilingPanning(93,-32,0,0,0);
+
+	Sector_SetFloorPanning(100,-32,0,0,0);
+	Sector_SetCeilingPanning(100,-32,0,0,0);
+
+	/* set the entry gate line to blocked so we can't jump over it... */
+	Line_SetBlocking(1,32,0);
+
+
+	/*
+    Set fade of sea (blue)
+    */
+	//Sector_SetFade(120,23,44,230);
+	//Sector_SetColor (120, 121,136,236);
+	
+	/*
+	Set fade of sea (brown)
+	*/
+	Sector_SetFade(120,102,67,5);
+	Sector_SetColor (120, 153,128,83);
+}
+
+/*
+Note I need to use heights lookup here because Hexen format ACS args cannot be > 255
+
+script stubs for door opening. They need to be independent so that > 1 can
+run concurrently. This *works*, but has lots of duplication.
+
+Revisit as per https://www.doomworld.com/forum/topic/115674-acs-simulated-door-gotcha/
+Plat_UpWaitDownStay(sectorTag,12,32);
+
+prevent retriggering of the door if it is cycling:
+*/
+//MAIN DOOR
+script 2 (int controlSectorTag, int switchHeightMapLookupIndex){
+	if(checkPlayerDoorProximity( switchHeightMapLookupIndex)){
+		Thing_Activate(72);	//turn on warning light things
+
+		PlaySound(switchHeightMap[switchHeightMapLookupIndex][2],"plats/pt1_strt");
+		FloorAndCeiling_RaiseByValue (controlSectorTag, 6, 64);
+		TagWait(controlSectorTag);	//need this or sound does not play!!
+		//see https://github.com/rheit/zdoom/blob/master/wadsrc/static/filter/game-doomchex/sndinfo.txt
+		//PlaySound(switchHeightMap[switchHeightMapLookupIndex][2],"plats/pt1_mid");
+		PlaySound(switchHeightMap[switchHeightMapLookupIndex][2],"plats/pt1_stop");
+		Delay(144);
+		PlaySound(switchHeightMap[switchHeightMapLookupIndex][2],"plats/pt1_strt");
+		FloorAndCeiling_LowerByValue (controlSectorTag, 6, 64);
+		TagWait(controlSectorTag);
+		PlaySound(switchHeightMap[switchHeightMapLookupIndex][2],"plats/pt1_mid");
+		PlaySound(switchHeightMap[switchHeightMapLookupIndex][2],"plats/pt1_stop");
+		TagWait(controlSectorTag);
+		Thing_Deactivate(72);	//turn off warning light things
+	}
+}
+
+script 3 (int controlSectorTag, int switchHeightMapLookupIndex){
+	if(checkPlayerDoorProximity( switchHeightMapLookupIndex)){
+		FloorAndCeiling_RaiseByValue (controlSectorTag, 12, 64);
+		PlaySound(switchHeightMap[switchHeightMapLookupIndex][2],"doors/dr1_open");
+		Delay(144);
+		FloorAndCeiling_LowerByValue (controlSectorTag, 12, 64);
+		PlaySound(switchHeightMap[switchHeightMapLookupIndex][2],"doors/dr1_clos");
+		TagWait(controlSectorTag);
+	}
+}
+
+script 4 (int controlSectorTag, int switchHeightMapLookupIndex){
+	if(checkPlayerDoorProximity( switchHeightMapLookupIndex)){
+		FloorAndCeiling_RaiseByValue (controlSectorTag, 12, 64);
+		PlaySound(switchHeightMap[switchHeightMapLookupIndex][2],"doors/dr1_open");
+		Delay(144);
+		FloorAndCeiling_LowerByValue (controlSectorTag, 12, 64);
+		PlaySound(switchHeightMap[switchHeightMapLookupIndex][2],"doors/dr1_clos");
+		TagWait(controlSectorTag);
+	}
+}
+
+script 5 (int controlSectorTag, int switchHeightMapLookupIndex){
+	if(checkPlayerDoorProximity( switchHeightMapLookupIndex)){
+		FloorAndCeiling_RaiseByValue (controlSectorTag, 12, 64);
+		PlaySound(switchHeightMap[switchHeightMapLookupIndex][2],"doors/dr1_open");
+		Delay(144);
+		FloorAndCeiling_LowerByValue (controlSectorTag, 12, 64);
+		PlaySound(switchHeightMap[switchHeightMapLookupIndex][2],"doors/dr1_clos");
+		TagWait(controlSectorTag);
+	}
+}
+
+script 6 (int controlSectorTag, int switchHeightMapLookupIndex){
+	if(checkPlayerDoorProximity( switchHeightMapLookupIndex)){
+		FloorAndCeiling_RaiseByValue (controlSectorTag, 12, 64);
+		PlaySound(switchHeightMap[switchHeightMapLookupIndex][2],"doors/dr1_open");
+		Delay(144);
+		FloorAndCeiling_LowerByValue (controlSectorTag, 12, 64);
+		PlaySound(switchHeightMap[switchHeightMapLookupIndex][2],"doors/dr1_clos");
+		TagWait(controlSectorTag);
+	}
+}
+
+/*
+scripts for multi-level doors (i.e. multo floor doors that are above each other)
+*/
+
+//NW office door stack:
+script 7 (int switchHeightMapLookupIndex ){
+	int controlSectorLookup[3] = {5, 6, 7};	//INDEXES for control sectors!
+ 	/* check whether player is same height as current door */
+ 	for(int x=0; x<3; x++){
+ 		if(checkPlayerDoorProximity(controlSectorLookup[x] )){
+			//now move the relevant control sector:
+ 			FloorAndCeiling_RaiseByValue (switchHeightMap[controlSectorLookup[x]][0], 12, 64);
+ 			//see https://github.com/rheit/zdoom/blob/master/wadsrc/static/filter/game-doomchex/sndinfo.txt
+ 			PlaySound(switchHeightMap[controlSectorLookup[x]][2],"doors/dr1_open");
+ 			Delay(144);
+ 			FloorAndCeiling_LowerByValue (switchHeightMap[controlSectorLookup[x]][0], 12, 64);
+ 			PlaySound(switchHeightMap[controlSectorLookup[x]][2],"doors/dr1_clos");
+ 			TagWait(switchHeightMap[controlSectorLookup[x]][0]);
+			//break out of loop
+			break;
+ 		}
+ 	}
+}
+
+//NW office door stack:
+script 8 (int switchHeightMapLookupIndex ){
+	int controlSectorLookup[3] = {8,9,10};	//INDEXES for control sectors!
+ 	/* check whether player is same height as current door */
+ 	for(int x=0; x<3; x++){
+ 		if(checkPlayerDoorProximity(controlSectorLookup[x] )){
+			//now move the relevant control sector:
+ 			FloorAndCeiling_RaiseByValue (switchHeightMap[controlSectorLookup[x]][0], 12, 64);
+ 			//see https://github.com/rheit/zdoom/blob/master/wadsrc/static/filter/game-doomchex/sndinfo.txt
+ 			PlaySound(switchHeightMap[controlSectorLookup[x]][2],"doors/dr1_open");
+ 			Delay(144);
+ 			FloorAndCeiling_LowerByValue (switchHeightMap[controlSectorLookup[x]][0], 12, 64);
+ 			PlaySound(switchHeightMap[controlSectorLookup[x]][2],"doors/dr1_clos");
+ 			TagWait(switchHeightMap[controlSectorLookup[x]][0]);
+			//break out of loop
+			break;
+ 		}
+ 	}
+}
+
+//SW middle corridor door stack:
+script 9 (int switchHeightMapLookupIndex ){
+	int controlSectorLookup[3] = {11,12,13};	//INDEXES for control sectors!
+ 	/* check whether player is same height as current door */
+ 	for(int x=0; x<3; x++){
+ 		if(checkPlayerDoorProximity(controlSectorLookup[x] )){
+			//now move the relevant control sector:
+ 			FloorAndCeiling_RaiseByValue (switchHeightMap[controlSectorLookup[x]][0], 12, 64);
+ 			PlaySound(switchHeightMap[controlSectorLookup[x]][2],"doors/dr1_open");
+ 			Delay(144);
+ 			FloorAndCeiling_LowerByValue (switchHeightMap[controlSectorLookup[x]][0], 12, 64);
+ 			PlaySound(switchHeightMap[controlSectorLookup[x]][2],"doors/dr1_clos");
+ 			TagWait(switchHeightMap[controlSectorLookup[x]][0]);
+			//break out of loop
+			break;
+ 		}
+ 	}
+}
+
+//SW corner door stack:
+script 10 (int switchHeightMapLookupIndex ){
+	int controlSectorLookup[3] = {14,15,16};	//INDEXES for control sectors!
+ 	/* check whether player is same height as current door */
+ 	for(int x=0; x<3; x++){
+ 		if(checkPlayerDoorProximity(controlSectorLookup[x] )){
+			//now move the relevant control sector:
+ 			FloorAndCeiling_RaiseByValue (switchHeightMap[controlSectorLookup[x]][0], 12, 64);
+ 			PlaySound(switchHeightMap[controlSectorLookup[x]][2],"doors/dr1_open");
+ 			Delay(144);
+ 			FloorAndCeiling_LowerByValue (switchHeightMap[controlSectorLookup[x]][0], 12, 64);
+ 			PlaySound(switchHeightMap[controlSectorLookup[x]][2],"doors/dr1_clos");
+ 			TagWait(switchHeightMap[controlSectorLookup[x]][0]);
+			//break out of loop
+			break;
+ 		}
+ 	}
+}
+
+//central main door stack:
+script 11 (int switchHeightMapLookupIndex ){
+	int controlSectorLookup[3] = {17,18,19};	//INDEXES for control sectors!
+ 	/* check whether player is same height as current door */
+ 	for(int x=0; x<3; x++){
+ 		if(checkPlayerDoorProximity(controlSectorLookup[x] )){
+			//now move the relevant control sector:
+ 			FloorAndCeiling_RaiseByValue (switchHeightMap[controlSectorLookup[x]][0], 12, 64);
+ 			//see https://github.com/rheit/zdoom/blob/master/wadsrc/static/filter/game-doomchex/sndinfo.txt
+ 			PlaySound(switchHeightMap[controlSectorLookup[x]][2],"doors/dr1_open");
+ 			Delay(144);
+ 			FloorAndCeiling_LowerByValue (switchHeightMap[controlSectorLookup[x]][0], 12, 64);
+ 			PlaySound(switchHeightMap[controlSectorLookup[x]][2],"doors/dr1_clos");
+ 			TagWait(switchHeightMap[controlSectorLookup[x]][0]);
+			//break out of loop
+			break;
+ 		}
+ 	}
+}
+
+//stairwell doors stack:
+script 12 (int switchHeightMapLookupIndex ){
+	int controlSectorLookup[3] = {20,21,22};	//INDEXES for control sectors!
+ 	/* check whether player is same height as current door */
+ 	for(int x=0; x<3; x++){
+ 		if(checkPlayerDoorProximity(controlSectorLookup[x] )){
+			//now move the relevant control sector:
+ 			FloorAndCeiling_RaiseByValue (switchHeightMap[controlSectorLookup[x]][0], 12, 64);
+ 			//see https://github.com/rheit/zdoom/blob/master/wadsrc/static/filter/game-doomchex/sndinfo.txt
+ 			PlaySound(switchHeightMap[controlSectorLookup[x]][2],"doors/dr1_open");
+ 			Delay(144);
+ 			FloorAndCeiling_LowerByValue (switchHeightMap[controlSectorLookup[x]][0], 12, 64);
+ 			PlaySound(switchHeightMap[controlSectorLookup[x]][2],"doors/dr1_clos");
+ 			TagWait(switchHeightMap[controlSectorLookup[x]][0]);
+			//break out of loop
+			break;
+ 		}
+ 	}
+}
+
+//LH central door stack:
+script 13 (int switchHeightMapLookupIndex ){
+	int controlSectorLookup[2] = {23, 24};	//INDEXES for control sectors!
+ 	/* check whether player is same height as current door */
+ 	for(int x=0; x<3; x++){
+ 		if(checkPlayerDoorProximity(controlSectorLookup[x] )){
+			//now move the relevant control sector:
+ 			FloorAndCeiling_RaiseByValue (switchHeightMap[controlSectorLookup[x]][0], 12, 64);
+ 			PlaySound(switchHeightMap[controlSectorLookup[x]][2],"doors/dr1_open");
+ 			Delay(144);
+ 			FloorAndCeiling_LowerByValue (switchHeightMap[controlSectorLookup[x]][0], 12, 64);
+ 			PlaySound(switchHeightMap[controlSectorLookup[x]][2],"doors/dr1_clos");
+ 			TagWait(switchHeightMap[controlSectorLookup[x]][0]);
+			//break out of loop
+			break;
+ 		}
+ 	}
+}
+
+//RH central door stack:
+script 14 (int switchHeightMapLookupIndex ){
+	int controlSectorLookup[2] = {25, 26};	//INDEXES for control sectors!
+ 	/* check whether player is same height as current door */
+ 	for(int x=0; x<3; x++){
+ 		if(checkPlayerDoorProximity(controlSectorLookup[x] )){
+			//now move the relevant control sector:
+ 			FloorAndCeiling_RaiseByValue (switchHeightMap[controlSectorLookup[x]][0], 12, 64);
+ 			PlaySound(switchHeightMap[controlSectorLookup[x]][2],"doors/dr1_open");
+ 			Delay(144);
+ 			FloorAndCeiling_LowerByValue (switchHeightMap[controlSectorLookup[x]][0], 12, 64);
+ 			PlaySound(switchHeightMap[controlSectorLookup[x]][2],"doors/dr1_clos");
+ 			TagWait(switchHeightMap[controlSectorLookup[x]][0]);
+			//break out of loop
+			break;
+ 		}
+ 	}
+}
+
+
+//RH central door stack:
+script 16 (int switchHeightMapLookupIndex ){
+	int controlSectorLookup[2] = {27, 28};	//INDEXES for control sectors!
+ 	/* check whether player is same height as current door */
+ 	for(int x=0; x<3; x++){
+ 		if(checkPlayerDoorProximity(controlSectorLookup[x] )){
+			/*
+			also, depending on height, I need to check for blue (grnd floor)
+			or yellow (1st floor) keys.
+			see: https://zdoom.org/wiki/ACS_LockedExecute
+
+			UGLEEE!!:
+			*/
+			bool openDoor = false;
+			int zpos = (GetActorFloorZ(0))/65536;
+			log(s:"player at ", i:zpos);
+			switch(zpos){
+				case 0:
+					if(CheckInventory("BlueCard")){
+						openDoor = true;
+					}
+					else
+						Print(s:"You need the blue key.");
+				break;
+
+				case 128:
+					if(CheckInventory("YellowCard")){
+						openDoor = true;
+					}
+					else
+						Print(s:"You need the yellow key.");
+				break;
+
+			}
+
+			if(openDoor){
+				//now move the relevant control sector:
+				FloorAndCeiling_RaiseByValue (switchHeightMap[controlSectorLookup[x]][0], 12, 64);
+				PlaySound(switchHeightMap[controlSectorLookup[x]][2],"doors/dr1_open");
+				Delay(144);
+				FloorAndCeiling_LowerByValue (switchHeightMap[controlSectorLookup[x]][0], 12, 64);
+				PlaySound(switchHeightMap[controlSectorLookup[x]][2],"doors/dr1_clos");
+				TagWait(switchHeightMap[controlSectorLookup[x]][0]);
+				//break out of loop
+				break;
+ 			}
+ 		}
+ 	}
+}
+
+
+/*
+Teleport out of secret area. Need to check height as this is part of a multilevel
+structure...
+*/
+script 15 (void){
+	int zpos = (GetActorFloorZ(0))/65536; //see https://zdoom.org/wiki/Definitions#Fixed_point_numbers
+	if(zpos >= -24 && zpos <= 24){
+		//teleport the player:
+		Teleport(0,73,FALSE);
+	}
+}
+
+/*
+activate thing(s) on specified floor. Suppress crossing activation on other floors:
+ - floor starts at zero!
+ - remove hardcoded TID!!:
+*/
+script 17 (int thingId, int floorNum){
+	int zpos = (GetActorFloorZ(0))/65536;
+	if(zpos >= (floorNum * 128 ) - 24 && zpos <= (floorNum * 128 ) + 24){
+		Thing_Activate(11);
+	}
+}
+
+/*
+Various actions triggered from the red secret:
+ - raise two other switches (one plat is already a teleporter)
+ - activate the arachnotrons
+ - open/lower something for an uber bonus? (to determine)
+ - need to work in going to NW door, past the arachnos
+*/
+script 18 (void){
+	/*
+	Activate the arachnotrons:
+	*/
+	Thing_Activate(12);
+
+	/* rocket sentry by exit */
+	Thing_Activate(31);
+
+	/*
+	Raise other switches (89):
+	*/
+	Floor_RaiseByValue (89, 32, 40);
+
+	/* Raiserocket turret platformby exit: */
+	Floor_RaiseByValue (118, 16, 64);
+
+	/* and set the flag for the exit bars to be raised: */
+	exitBarsSwitchUp = true;
+}
+
+/*
+Open main entry barrier*/
+script 19 (void){
+	/* Lower control sector */
+	FloorAndCeiling_LowerByValue (102, 72, 64);
+
+	/* Raise platform to simulate barrier in up state: */
+	Floor_RaiseByValue (101, 128, 500);
+
+	/* remove impassable flag from line ID 1: */
+	Line_SetBlocking(1,0,32);
+}
+
+
+/* Lower the barriers around the exit teleporter, but ONLY if th eswitch is raised already.
+It is possible to activate teh switch if the sector is still flush with the floor if
+you know where it is. */
+script 20 (void){
+	if(exitBarsSwitchUp){
+		Floor_LowerByValue(107,32,56);
+	}
+	else{
+		/*debug*/
+		log(s:"switch not up, sucker");
+	}
+}
+
+/*
+determine whether the player is at or about the height of the switch.
+Additionally, determine keys if needed:
+*/
+function bool checkPlayerDoorProximity(int switchHeightMapLookupIndex ){
+	int switchHeight = switchHeightMap[switchHeightMapLookupIndex][1];
+	bool trigger = false;
+	int zpos = (GetActorFloorZ(0))/65536; //see https://zdoom.org/wiki/Definitions#Fixed_point_numbers
+	if(switchHeight >= zpos-24 && switchHeight <= zpos+24){
+		trigger = true;
+	}
+	return(trigger);
+}
+
+
+
+
